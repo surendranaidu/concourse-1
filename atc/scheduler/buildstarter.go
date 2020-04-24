@@ -27,7 +27,7 @@ type BuildStarter interface {
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.PlanConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type Build interface {
@@ -235,7 +235,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return startResults{}, fmt.Errorf("config: %w", err)
 	}
 
-	plan, err := s.factory.Create(config, resourceConfigs, resourceTypes.Deserialize(), buildInputs)
+	plan, err := s.factory.Create(config.Plan(), resourceConfigs, resourceTypes.Deserialize(), buildInputs)
 	if err != nil {
 		logger.Error("failed-to-create-build-plan", err)
 
