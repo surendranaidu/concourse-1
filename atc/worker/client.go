@@ -468,7 +468,7 @@ func (client *client) chooseTaskWorker(
 				time.Sleep(time.Second)
 				continue
 			}
-			existingContainer, err = client.pool.ContainerInWorker(logger, owner, containerSpec, workerSpec)
+			existingContainer, err = client.pool.ContainerInWorker(logger, owner, workerSpec)
 			if err != nil {
 				release_err := activeTasksLock.Release()
 				if release_err != nil {

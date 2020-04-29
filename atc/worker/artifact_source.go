@@ -105,8 +105,27 @@ func (source *artifactSource) StreamFile(
 	}, nil
 }
 
+
+// Returns volume if it belongs to the worker
+//  otherwise, if the volume has a corresponding Resource Cache,
+//  checks the worker for a local volume corresponding to the Resource Cache.
+//  Note: The returned volume may have a different handle than the ArtifactSource's inner volume handle.
 func (source *artifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
-	return worker.LookupVolume(logger, source.artifact.ID())
+	if source.volume.WorkerName() == worker.Name() {
+		return source.volume, true, nil
+	}
+
+	//If Volume has a resourceCache
+	resourceCache, found, err := worker.FindResourceCacheForVolume(source.volume)
+	if err != nil {
+		return nil, false, err
+	}
+	if found {
+		return worker.FindVolumeForResourceCache(logger, resourceCache)
+	}else {
+		return nil, false, nil
+	}
+
 }
 
 type cacheArtifactSource struct {
