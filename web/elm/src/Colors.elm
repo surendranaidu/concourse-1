@@ -54,7 +54,7 @@ module Colors exposing
     )
 
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.PipelineStatus exposing (PipelineStatus(..))
+import Dashboard.Group.Models exposing (PipelineCardStatus(..))
 
 
 frame : String
@@ -302,7 +302,7 @@ retryTabText =
     "#f5f5f5"
 
 
-statusColor : PipelineStatus -> String
+statusColor : PipelineCardStatus -> String
 statusColor status =
     case status of
         PipelineStatusPaused ->

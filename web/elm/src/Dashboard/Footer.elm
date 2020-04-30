@@ -2,8 +2,8 @@ module Dashboard.Footer exposing (handleDelivery, view)
 
 import Assets
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
-import Dashboard.Group.Models exposing (Pipeline)
+import Concourse.PipelineStatus as PipelineStatus
+import Dashboard.Group.Models exposing (Pipeline, PipelineCardStatus(..), show)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
 import FetchResult exposing (FetchResult)
@@ -208,7 +208,7 @@ hideLegend { pipelines } =
         |> List.isEmpty
 
 
-legendItem : PipelineStatus -> Html Message
+legendItem : PipelineCardStatus -> Html Message
 legendItem status =
     Html.div
         Styles.legendItem
@@ -216,7 +216,7 @@ legendItem status =
             { sizePx = 20, image = Assets.PipelineStatusIcon status }
             Styles.pipelineStatusIcon
         , Html.div [ style "width" "10px" ] []
-        , Html.text <| PipelineStatus.show status
+        , Html.text <| show status
         ]
 
 

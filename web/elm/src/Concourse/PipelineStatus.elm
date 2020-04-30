@@ -3,7 +3,6 @@ module Concourse.PipelineStatus exposing
     , StatusDetails(..)
     , equal
     , isRunning
-    , show
     )
 
 import Time
@@ -21,7 +20,6 @@ type PipelineStatus
     | PipelineStatusFailed StatusDetails
     | PipelineStatusPending Bool
     | PipelineStatusSucceeded StatusDetails
-    | PipelineStatusUnknown
 
 
 equal : PipelineStatus -> PipelineStatus -> Bool
@@ -49,31 +47,6 @@ equal ps1 ps2 =
             False
 
 
-show : PipelineStatus -> String
-show status =
-    case status of
-        PipelineStatusPaused ->
-            "paused"
-
-        PipelineStatusAborted _ ->
-            "aborted"
-
-        PipelineStatusErrored _ ->
-            "errored"
-
-        PipelineStatusFailed _ ->
-            "failed"
-
-        PipelineStatusPending _ ->
-            "pending"
-
-        PipelineStatusSucceeded _ ->
-            "succeeded"
-
-        PipelineStatusUnknown ->
-            "unknown"
-
-
 isRunning : PipelineStatus -> Bool
 isRunning status =
     case status of
@@ -94,6 +67,3 @@ isRunning status =
 
         PipelineStatusSucceeded details ->
             details == Running
-
-        PipelineStatusUnknown ->
-            False

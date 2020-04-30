@@ -8,7 +8,7 @@ module Assets exposing
 
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli exposing (Cli(..))
-import Concourse.PipelineStatus exposing (PipelineStatus(..))
+import Dashboard.Group.Models exposing (PipelineCardStatus(..))
 import Url.Builder
 
 
@@ -36,7 +36,7 @@ type Asset
     | SuccessCheckIcon
     | FailureTimesIcon
     | ExclamationTriangleIcon
-    | PipelineStatusIcon PipelineStatus
+    | PipelineStatusIcon PipelineCardStatus
     | ClippyIcon
     | UpArrow
     | DownArrow

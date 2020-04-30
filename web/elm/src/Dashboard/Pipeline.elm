@@ -10,7 +10,7 @@ import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
-import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Group.Models exposing (Pipeline, PipelineCardStatus(..))
 import Dashboard.Styles as Styles
 import Duration
 import HoverState
@@ -59,12 +59,12 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
          , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
          , href <| Routes.toString <| Routes.pipelineRoute pipeline
          ]
-            ++ Styles.pipelineCardHd (pipelineStatus isCached existingJobs pipeline)
+            ++ Styles.pipelineCardHd (pipelineCardStatus isCached existingJobs pipeline)
         )
     <|
         [ Html.div
             (Styles.pipelineCardBannerHd
-                { status = pipelineStatus isCached existingJobs pipeline
+                { status = pipelineCardStatus isCached existingJobs pipeline
                 , pipelineRunningKeyframes = pipelineRunningKeyframes
                 }
             )
@@ -113,7 +113,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
         [ Html.div
             (class "banner"
                 :: Styles.pipelineCardBanner
-                    { status = pipelineStatus isCached existingJobs pipeline
+                    { status = pipelineCardStatus isCached existingJobs pipeline
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                     }
             )
@@ -124,87 +124,123 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
         ]
 
 
-pipelineStatus : Bool -> List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
-pipelineStatus isCached jobs pipeline =
+pipelineCardStatus : Bool -> List Concourse.Job -> Pipeline -> PipelineCardStatus
+pipelineCardStatus isCached jobs pipeline =
     if isCached then
-        PipelineStatus.PipelineStatusUnknown
+        PipelineStatusUnknown
 
     else if pipeline.paused then
+        PipelineStatusPaused
+
+    else
+        statusFromJobs jobs |> fromPipelineStatus
+
+
+fromPipelineStatus : PipelineStatus.PipelineStatus -> PipelineCardStatus
+fromPipelineStatus status =
+    case status of
+        PipelineStatus.PipelineStatusPaused ->
+            PipelineStatusPaused
+
+        PipelineStatus.PipelineStatusAborted details ->
+            PipelineStatusAborted details
+
+        PipelineStatus.PipelineStatusErrored details ->
+            PipelineStatusErrored details
+
+        PipelineStatus.PipelineStatusFailed details ->
+            PipelineStatusFailed details
+
+        PipelineStatus.PipelineStatusPending isRunning ->
+            PipelineStatusPending isRunning
+
+        PipelineStatus.PipelineStatusSucceeded details ->
+            PipelineStatusSucceeded details
+
+
+pipelineStatus : List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
+pipelineStatus jobs pipeline =
+    if pipeline.paused then
         PipelineStatus.PipelineStatusPaused
 
     else
-        let
-            isRunning =
-                List.any (\job -> job.nextBuild /= Nothing) jobs
+        statusFromJobs jobs
 
-            mostImportantJobStatus =
-                jobs
-                    |> List.map jobStatus
-                    |> List.sortWith Concourse.BuildStatus.ordering
-                    |> List.head
 
-            firstNonSuccess =
-                jobs
-                    |> List.filter (jobStatus >> (/=) BuildStatusSucceeded)
-                    |> List.filterMap transition
-                    |> List.sortBy Time.posixToMillis
-                    |> List.head
+statusFromJobs : List Concourse.Job -> PipelineStatus.PipelineStatus
+statusFromJobs jobs =
+    let
+        isRunning =
+            List.any (\job -> job.nextBuild /= Nothing) jobs
 
-            lastTransition =
-                jobs
-                    |> List.filterMap transition
-                    |> List.sortBy Time.posixToMillis
-                    |> List.reverse
-                    |> List.head
+        mostImportantJobStatus =
+            jobs
+                |> List.map jobStatus
+                |> List.sortWith Concourse.BuildStatus.ordering
+                |> List.head
 
-            transitionTime =
-                case firstNonSuccess of
-                    Just t ->
-                        Just t
+        firstNonSuccess =
+            jobs
+                |> List.filter (jobStatus >> (/=) BuildStatusSucceeded)
+                |> List.filterMap transition
+                |> List.sortBy Time.posixToMillis
+                |> List.head
 
-                    Nothing ->
-                        lastTransition
-        in
-        case ( mostImportantJobStatus, transitionTime ) of
-            ( _, Nothing ) ->
-                PipelineStatus.PipelineStatusPending isRunning
+        lastTransition =
+            jobs
+                |> List.filterMap transition
+                |> List.sortBy Time.posixToMillis
+                |> List.reverse
+                |> List.head
 
-            ( Nothing, _ ) ->
-                PipelineStatus.PipelineStatusPending isRunning
+        transitionTime =
+            case firstNonSuccess of
+                Just t ->
+                    Just t
 
-            ( Just BuildStatusPending, _ ) ->
-                PipelineStatus.PipelineStatusPending isRunning
+                Nothing ->
+                    lastTransition
+    in
+    case ( mostImportantJobStatus, transitionTime ) of
+        ( _, Nothing ) ->
+            PipelineStatus.PipelineStatusPending isRunning
 
-            ( Just BuildStatusStarted, _ ) ->
-                PipelineStatus.PipelineStatusPending isRunning
+        ( Nothing, _ ) ->
+            PipelineStatus.PipelineStatusPending isRunning
 
-            ( Just BuildStatusSucceeded, Just since ) ->
-                if isRunning then
-                    PipelineStatus.PipelineStatusSucceeded PipelineStatus.Running
+        ( Just BuildStatusPending, _ ) ->
+            PipelineStatus.PipelineStatusPending isRunning
 
-                else
-                    PipelineStatus.PipelineStatusSucceeded (PipelineStatus.Since since)
+        ( Just BuildStatusStarted, _ ) ->
+            PipelineStatus.PipelineStatusPending isRunning
 
-            ( Just BuildStatusFailed, Just since ) ->
-                if isRunning then
-                    PipelineStatus.PipelineStatusFailed PipelineStatus.Running
+        ( Just BuildStatusSucceeded, Just since ) ->
+            if isRunning then
+                PipelineStatus.PipelineStatusSucceeded PipelineStatus.Running
 
-                else
-                    PipelineStatus.PipelineStatusFailed (PipelineStatus.Since since)
+            else
+                PipelineStatus.PipelineStatusSucceeded (PipelineStatus.Since since)
 
-            ( Just BuildStatusErrored, Just since ) ->
-                if isRunning then
-                    PipelineStatus.PipelineStatusErrored PipelineStatus.Running
+        ( Just BuildStatusFailed, Just since ) ->
+            if isRunning then
+                PipelineStatus.PipelineStatusFailed PipelineStatus.Running
 
-                else
-                    PipelineStatus.PipelineStatusErrored (PipelineStatus.Since since)
+            else
+                PipelineStatus.PipelineStatusFailed (PipelineStatus.Since since)
 
-            ( Just BuildStatusAborted, Just since ) ->
-                if isRunning then
-                    PipelineStatus.PipelineStatusAborted PipelineStatus.Running
+        ( Just BuildStatusErrored, Just since ) ->
+            if isRunning then
+                PipelineStatus.PipelineStatusErrored PipelineStatus.Running
 
-                else
-                    PipelineStatus.PipelineStatusAborted (PipelineStatus.Since since)
+            else
+                PipelineStatus.PipelineStatusErrored (PipelineStatus.Since since)
+
+        ( Just BuildStatusAborted, Just since ) ->
+            if isRunning then
+                PipelineStatus.PipelineStatusAborted PipelineStatus.Running
+
+            else
+                PipelineStatus.PipelineStatusAborted (PipelineStatus.Since since)
 
 
 jobStatus : Concourse.Job -> BuildStatus
@@ -271,7 +307,7 @@ footerView userState pipeline now hovered existingJobs isCached =
             }
 
         status =
-            pipelineStatus isCached existingJobs pipeline
+            pipelineCardStatus isCached existingJobs pipeline
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
@@ -288,7 +324,7 @@ footerView userState pipeline now hovered existingJobs isCached =
             List.intersperse spacer
                 [ PauseToggle.view
                     { isPaused =
-                        status == PipelineStatus.PipelineStatusPaused
+                        status == PipelineStatusPaused
                     , pipeline = pipelineId
                     , isToggleHovered =
                         HoverState.isHovered (PipelineButton pipelineId) hovered
@@ -374,59 +410,59 @@ sinceTransitionText details now =
             Duration.format <| Duration.between time now
 
 
-transitionView : Maybe Time.Posix -> PipelineStatus.PipelineStatus -> Html Message
+transitionView : Maybe Time.Posix -> PipelineCardStatus -> Html Message
 transitionView t status =
     case ( status, t ) of
-        ( PipelineStatus.PipelineStatusPaused, _ ) ->
+        ( PipelineStatusPaused, _ ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text "paused" ]
 
-        ( PipelineStatus.PipelineStatusUnknown, _ ) ->
+        ( PipelineStatusUnknown, _ ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text "loading..." ]
 
-        ( PipelineStatus.PipelineStatusPending False, _ ) ->
+        ( PipelineStatusPending False, _ ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text "pending" ]
 
-        ( PipelineStatus.PipelineStatusPending True, _ ) ->
+        ( PipelineStatusPending True, _ ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text "running" ]
 
-        ( PipelineStatus.PipelineStatusAborted details, Just now ) ->
+        ( PipelineStatusAborted details, Just now ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text <| sinceTransitionText details now ]
 
-        ( PipelineStatus.PipelineStatusErrored details, Just now ) ->
+        ( PipelineStatusErrored details, Just now ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text <| sinceTransitionText details now ]
 
-        ( PipelineStatus.PipelineStatusFailed details, Just now ) ->
+        ( PipelineStatusFailed details, Just now ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text <| sinceTransitionText details now ]
 
-        ( PipelineStatus.PipelineStatusSucceeded details, Just now ) ->
+        ( PipelineStatusSucceeded details, Just now ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status

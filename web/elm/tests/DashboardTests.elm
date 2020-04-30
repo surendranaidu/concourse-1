@@ -37,7 +37,7 @@ import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus exposing (PipelineStatus(..))
+import Dashboard.Group.Models exposing (PipelineCardStatus(..))
 import Data
 import Dict
 import Expect exposing (Expectation)

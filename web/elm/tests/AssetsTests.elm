@@ -10,7 +10,8 @@ import Assets
         )
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli exposing (Cli(..))
-import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
+import Concourse.PipelineStatus exposing (StatusDetails(..))
+import Dashboard.Group.Models exposing (PipelineCardStatus(..))
 import Expect
 import Test exposing (Test, describe, test)
 

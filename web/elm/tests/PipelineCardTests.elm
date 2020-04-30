@@ -4,7 +4,8 @@ import Application.Application as Application
 import Assets
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
+import Concourse.PipelineStatus exposing (StatusDetails(..))
+import Dashboard.Group.Models exposing (PipelineCardStatus(..))
 import DashboardTests exposing (afterSeconds, amber, apiData, blue, brown, circularJobs, darkGrey, fadedGreen, givenDataAndUser, givenDataUnauthenticated, green, iconSelector, job, jobWithNameTransitionedAt, lightGrey, middleGrey, orange, otherJob, red, running, userWithRoles, whenOnDashboard, white)
 import Data
 import Dict

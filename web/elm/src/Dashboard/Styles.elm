@@ -58,8 +58,9 @@ import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus exposing (PipelineStatus(..))
+import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.PipelineGrid.Constants as PipelineGridConstants
+import Dashboard.Group.Models exposing (PipelineCardStatus(..))
 import Html
 import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))
@@ -105,7 +106,7 @@ pipelineCard =
 
 
 pipelineCardBanner :
-    { status : PipelineStatus
+    { status : PipelineCardStatus
     , pipelineRunningKeyframes : String
     }
     -> List (Html.Attribute msg)
@@ -115,7 +116,7 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
             Colors.statusColor status
 
         isRunning =
-            Concourse.PipelineStatus.isRunning status
+            Dashboard.Group.Models.isRunning status
     in
     style "height" "7px" :: texture pipelineRunningKeyframes isRunning color
 
@@ -232,7 +233,7 @@ teamNameHd =
     ]
 
 
-pipelineCardHd : PipelineStatus -> List (Html.Attribute msg)
+pipelineCardHd : PipelineCardStatus -> List (Html.Attribute msg)
 pipelineCardHd status =
     [ style "display" "flex"
     , style "height" "60px"
@@ -269,7 +270,7 @@ pipelineCardBodyHd =
 
 
 pipelineCardBannerHd :
-    { status : PipelineStatus
+    { status : PipelineCardStatus
     , pipelineRunningKeyframes : String
     }
     -> List (Html.Attribute msg)
@@ -279,7 +280,7 @@ pipelineCardBannerHd { status, pipelineRunningKeyframes } =
             Colors.statusColor status
 
         isRunning =
-            Concourse.PipelineStatus.isRunning status
+            Dashboard.Group.Models.isRunning status
     in
     style "width" "8px" :: texture pipelineRunningKeyframes isRunning color
 
@@ -339,7 +340,7 @@ pipelineCardFooter =
     ]
 
 
-pipelineCardTransitionAge : PipelineStatus -> List (Html.Attribute msg)
+pipelineCardTransitionAge : PipelineCardStatus -> List (Html.Attribute msg)
 pipelineCardTransitionAge status =
     [ style "color" <| Colors.statusColor status
     , style "font-size" "18px"

@@ -1,4 +1,12 @@
-module Dashboard.Group.Models exposing (Group, Pipeline)
+module Dashboard.Group.Models exposing
+    ( Group
+    , Pipeline
+    , PipelineCardStatus(..)
+    , isRunning
+    , show
+    )
+
+import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 
 
 type alias Group =
@@ -17,3 +25,63 @@ type alias Pipeline =
     , paused : Bool
     , archived : Bool
     }
+
+
+type PipelineCardStatus
+    = PipelineStatusPaused
+    | PipelineStatusAborted PipelineStatus.StatusDetails
+    | PipelineStatusErrored PipelineStatus.StatusDetails
+    | PipelineStatusFailed PipelineStatus.StatusDetails
+    | PipelineStatusPending Bool
+    | PipelineStatusSucceeded PipelineStatus.StatusDetails
+    | PipelineStatusUnknown
+
+
+show : PipelineCardStatus -> String
+show status =
+    case status of
+        PipelineStatusPaused ->
+            "paused"
+
+        PipelineStatusAborted _ ->
+            "aborted"
+
+        PipelineStatusErrored _ ->
+            "errored"
+
+        PipelineStatusFailed _ ->
+            "failed"
+
+        PipelineStatusPending _ ->
+            "pending"
+
+        PipelineStatusSucceeded _ ->
+            "succeeded"
+
+        PipelineStatusUnknown ->
+            "unknown"
+
+
+isRunning : PipelineCardStatus -> Bool
+isRunning status =
+    case status of
+        PipelineStatusPaused ->
+            False
+
+        PipelineStatusAborted details ->
+            details == PipelineStatus.Running
+
+        PipelineStatusErrored details ->
+            details == PipelineStatus.Running
+
+        PipelineStatusFailed details ->
+            details == PipelineStatus.Running
+
+        PipelineStatusPending bool ->
+            bool
+
+        PipelineStatusSucceeded details ->
+            details == PipelineStatus.Running
+
+        PipelineStatusUnknown ->
+            False
