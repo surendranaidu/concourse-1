@@ -147,6 +147,11 @@ unknown =
     "#9b9b9b"
 
 
+jobsDisabled : String
+jobsDisabled =
+    "#ecf0f1"
+
+
 failure : String
 failure =
     "#ed4b35"
@@ -325,6 +330,9 @@ statusColor status =
 
         PipelineStatusUnknown ->
             unknown
+
+        PipelineStatusJobsDisabled ->
+            jobsDisabled
 
 
 buildStatusColor : Bool -> BuildStatus -> String

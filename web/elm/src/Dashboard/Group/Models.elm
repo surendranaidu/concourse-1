@@ -35,6 +35,7 @@ type PipelineCardStatus
     | PipelineStatusPending Bool
     | PipelineStatusSucceeded PipelineStatus.StatusDetails
     | PipelineStatusUnknown
+    | PipelineStatusJobsDisabled
 
 
 show : PipelineCardStatus -> String
@@ -61,6 +62,9 @@ show status =
         PipelineStatusUnknown ->
             "unknown"
 
+        PipelineStatusJobsDisabled ->
+            ""
+
 
 isRunning : PipelineCardStatus -> Bool
 isRunning status =
@@ -84,4 +88,7 @@ isRunning status =
             details == PipelineStatus.Running
 
         PipelineStatusUnknown ->
+            False
+
+        PipelineStatusJobsDisabled ->
             False

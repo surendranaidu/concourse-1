@@ -51,6 +51,7 @@ import Html.Events
         ( onMouseEnter
         , onMouseLeave
         )
+import Http
 import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
@@ -254,7 +255,16 @@ handleCallback callback ( model, effects ) =
                 ( newModel, effects )
 
         AllJobsFetched (Err err) ->
-            ( { model | jobsError = Just Failed }, effects )
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == httpStatusNotImplemented then
+                        ( { model | jobsError = Just Disabled }, effects )
+
+                    else
+                        ( { model | jobsError = Just Failed }, effects )
+
+                _ ->
+                    ( { model | jobsError = Just Failed }, effects )
 
         AllResourcesFetched (Ok resources) ->
             ( { model
@@ -699,6 +709,11 @@ documentTitle =
     "Dashboard"
 
 
+httpStatusNotImplemented : Int
+httpStatusNotImplemented =
+    501
+
+
 view : Session -> Model -> Html Message
 view session model =
     Html.div
@@ -957,6 +972,7 @@ pipelinesView :
             , viewportHeight : Float
             , scrollTop : Float
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+            , jobsError : Maybe FetchError
         }
     -> List (Html Message)
 pipelinesView session params =
@@ -995,6 +1011,9 @@ pipelinesView session params =
                 _ ->
                     False
 
+        isJobsDisabled =
+            params.jobsError == Just Disabled
+
         groupViews =
             filteredGroups
                 |> (if params.highDensity then
@@ -1005,6 +1024,7 @@ pipelinesView session params =
                                 , pipelineJobs = params.pipelineJobs
                                 , jobs = jobs
                                 , isCached = isCached
+                                , isJobsDisabled = isJobsDisabled
                                 }
                                 session
                             )
@@ -1040,6 +1060,7 @@ pipelinesView session params =
                                     , pipelineJobs = params.pipelineJobs
                                     , jobs = jobs
                                     , isCached = isCached
+                                    , isJobsDisabled = isJobsDisabled
                                     }
                                     g
                                     |> (\html ->

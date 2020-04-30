@@ -1,5 +1,6 @@
 module Dashboard.Pipeline exposing
     ( hdPipelineView
+    , pipelineCardStatus
     , pipelineNotSetView
     , pipelineStatus
     , pipelineView
@@ -47,11 +48,10 @@ hdPipelineView :
     { pipeline : Pipeline
     , pipelineRunningKeyframes : String
     , resourceError : Bool
-    , existingJobs : List Concourse.Job
-    , isCached : Bool
+    , status : PipelineCardStatus
     }
     -> Html Message
-hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs, isCached } =
+hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, status } =
     Html.a
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
@@ -59,12 +59,12 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
          , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
          , href <| Routes.toString <| Routes.pipelineRoute pipeline
          ]
-            ++ Styles.pipelineCardHd (pipelineCardStatus isCached existingJobs pipeline)
+            ++ Styles.pipelineCardHd status
         )
     <|
         [ Html.div
             (Styles.pipelineCardBannerHd
-                { status = pipelineCardStatus isCached existingJobs pipeline
+                { status = status
                 , pipelineRunningKeyframes = pipelineRunningKeyframes
                 }
             )
@@ -88,13 +88,13 @@ pipelineView :
     , pipelineRunningKeyframes : String
     , userState : UserState
     , resourceError : Bool
-    , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
     , query : String
     , isCached : Bool
+    , status : PipelineCardStatus
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query, isCached } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, layers, query, isCached, status } =
     Html.div
         (Styles.pipelineCard
             ++ (if not isCached && String.isEmpty query then
@@ -113,24 +113,27 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
         [ Html.div
             (class "banner"
                 :: Styles.pipelineCardBanner
-                    { status = pipelineCardStatus isCached existingJobs pipeline
+                    { status = status
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                     }
             )
             []
         , headerView pipeline resourceError
         , bodyView hovered layers
-        , footerView userState pipeline now hovered existingJobs isCached
+        , footerView userState pipeline now hovered status
         ]
 
 
-pipelineCardStatus : Bool -> List Concourse.Job -> Pipeline -> PipelineCardStatus
-pipelineCardStatus isCached jobs pipeline =
+pipelineCardStatus : Bool -> Bool -> List Concourse.Job -> Pipeline -> PipelineCardStatus
+pipelineCardStatus isCached isJobsDisabled jobs pipeline =
     if isCached then
         PipelineStatusUnknown
 
     else if pipeline.paused then
         PipelineStatusPaused
+
+    else if isJobsDisabled then
+        PipelineStatusJobsDisabled
 
     else
         statusFromJobs jobs |> fromPipelineStatus
@@ -293,10 +296,9 @@ footerView :
     -> Pipeline
     -> Maybe Time.Posix
     -> HoverState.HoverState
-    -> List Concourse.Job
-    -> Bool
+    -> PipelineCardStatus
     -> Html Message
-footerView userState pipeline now hovered existingJobs isCached =
+footerView userState pipeline now hovered status =
     let
         spacer =
             Html.div [ style "width" "13.5px" ] []
@@ -305,9 +307,6 @@ footerView userState pipeline now hovered existingJobs isCached =
             { pipelineName = pipeline.name
             , teamName = pipeline.teamName
             }
-
-        status =
-            pipelineCardStatus isCached existingJobs pipeline
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)

@@ -57,6 +57,7 @@ view :
         , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
         , jobs : Dict ( String, String, String ) Concourse.Job
         , isCached : Bool
+        , isJobsDisabled : Bool
         }
     -> Group
     -> Html Message
@@ -135,11 +136,12 @@ hdView :
     , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
     , jobs : Dict ( String, String, String ) Concourse.Job
     , isCached : Bool
+    , isJobsDisabled : Bool
     }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, isCached, jobs } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, isCached, jobs, isJobsDisabled } session g =
     let
         orderedPipelines =
             g.pipelines
@@ -165,12 +167,15 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, is
                                     pipelinesWithResourceErrors
                                         |> Dict.get ( p.teamName, p.name )
                                         |> Maybe.withDefault False
-                                , existingJobs =
-                                    pipelineJobs
-                                        |> Dict.get ( p.teamName, p.name )
-                                        |> Maybe.withDefault []
-                                        |> List.filterMap (lookupJob jobs)
-                                , isCached = isCached
+                                , status =
+                                    Pipeline.pipelineCardStatus isCached
+                                        isJobsDisabled
+                                        (pipelineJobs
+                                            |> Dict.get ( p.teamName, p.name )
+                                            |> Maybe.withDefault []
+                                            |> List.filterMap (lookupJob jobs)
+                                        )
+                                        p
                                 }
                         )
     in
@@ -221,6 +226,7 @@ pipelineCardView :
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
             , jobs : Dict ( String, String, String ) Concourse.Job
             , isCached : Bool
+            , isJobsDisabled : Bool
         }
     ->
         { bounds : PipelineGrid.Bounds
@@ -327,11 +333,6 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
                     params.pipelinesWithResourceErrors
                         |> Dict.get ( pipeline.teamName, pipeline.name )
                         |> Maybe.withDefault False
-                , existingJobs =
-                    params.pipelineJobs
-                        |> Dict.get ( pipeline.teamName, pipeline.name )
-                        |> Maybe.withDefault []
-                        |> List.filterMap (lookupJob params.jobs)
                 , layers =
                     params.pipelineLayers
                         |> Dict.get ( pipeline.teamName, pipeline.name )
@@ -342,6 +343,15 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
                 , userState = session.userState
                 , query = params.query
                 , isCached = params.isCached
+                , status =
+                    Pipeline.pipelineCardStatus params.isCached
+                        params.isJobsDisabled
+                        (params.pipelineJobs
+                            |> Dict.get ( pipeline.teamName, pipeline.name )
+                            |> Maybe.withDefault []
+                            |> List.filterMap (lookupJob params.jobs)
+                        )
+                        pipeline
                 }
             ]
         ]

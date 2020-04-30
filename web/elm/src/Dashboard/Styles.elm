@@ -58,9 +58,8 @@ import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus as PipelineStatus
-import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.Group.Models exposing (PipelineCardStatus(..))
+import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Html
 import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))

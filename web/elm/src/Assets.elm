@@ -250,6 +250,9 @@ toPath asset =
 
                         PipelineStatusUnknown ->
                             "ic-cached-grey.svg"
+
+                        PipelineStatusJobsDisabled ->
+                            "ic-sync.svg"
             in
             basePath ++ [ imageName ]
 
