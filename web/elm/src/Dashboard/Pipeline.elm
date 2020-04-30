@@ -35,13 +35,18 @@ pipelineNotSetView =
             (class "card-header" :: Styles.noPipelineCardHeader)
             [ Html.text "no pipeline set"
             ]
-        , Html.div
-            (class "card-body" :: Styles.cardBody)
-            [ Html.div Styles.previewPlaceholder [] ]
+        , placeholderPreview
         , Html.div
             (class "card-footer" :: Styles.cardFooter)
             []
         ]
+
+
+placeholderPreview : Html Message
+placeholderPreview =
+    Html.div
+        (class "card-body" :: Styles.cardBody)
+        [ Html.div Styles.previewPlaceholder [] ]
 
 
 hdPipelineView :
@@ -119,7 +124,11 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
             )
             []
         , headerView pipeline resourceError
-        , bodyView hovered layers
+        , if status == PipelineStatusJobsDisabled then
+            placeholderPreview
+
+          else
+            bodyView hovered layers
         , footerView userState pipeline now hovered status
         ]
 

@@ -1231,9 +1231,9 @@ all =
                                 |> Query.find [ class "card" ]
                                 |> Query.has [ style "opacity" "0.45" ]
                     ]
-                , describe "when pipeline has no jobs due to a disabled endpoint"
-                    [ test "status icon is sync" <|
-                        \_ ->
+                , describe "when pipeline has no jobs due to a disabled endpoint" <|
+                    let
+                        setup =
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
                                     [ { id = 0, name = "team" } ]
@@ -1243,6 +1243,8 @@ all =
                                         Ok
                                             [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
+                                |> Tuple.first
+                                |> Application.handleDelivery (CachedJobsReceived <| Ok [])
                                 |> Tuple.first
                                 |> Application.handleCallback
                                     (Callback.AllJobsFetched <|
@@ -1258,6 +1260,10 @@ all =
                                                 }
                                     )
                                 |> Tuple.first
+                    in
+                    [ test "status icon is sync" <|
+                        \_ ->
+                            setup
                                 |> Common.queryView
                                 |> findStatusIcon
                                 |> Query.has
@@ -1267,6 +1273,48 @@ all =
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
+                    , test "jobs preview is placeholder" <|
+                        \_ ->
+                            setup
+                                |> Common.queryView
+                                |> findBody
+                                |> Query.has
+                                    [ style "background-color" middleGrey ]
+                    , describe "when paused" <|
+                        let
+                            setupPaused =
+                                setup
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ Data.pipeline "team" 0
+                                                    |> Data.withName "pipeline"
+                                                    |> Data.withPaused True
+                                                ]
+                                        )
+                                    |> Tuple.first
+                                    |> Common.queryView
+                        in
+                        [ test "status icon is blue pause" <|
+                            \_ ->
+                                setupPaused
+                                    |> findStatusIcon
+                                    |> Query.has
+                                        (iconSelector
+                                            { size = "20px"
+                                            , image =
+                                                PipelineStatusPaused
+                                                    |> Assets.PipelineStatusIcon
+                                            }
+                                            ++ [ style "background-size" "contain" ]
+                                        )
+                        , test "jobs preview is placeholder" <|
+                            \_ ->
+                                setupPaused
+                                    |> findBody
+                                    |> Query.has
+                                        [ style "background-color" middleGrey ]
+                        ]
                     ]
                 , describe "when pipeline is pending" <|
                     [ test "status icon is grey" <|

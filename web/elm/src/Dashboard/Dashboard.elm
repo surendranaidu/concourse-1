@@ -258,7 +258,12 @@ handleCallback callback ( model, effects ) =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == httpStatusNotImplemented then
-                        ( { model | jobsError = Just Disabled }, effects )
+                        ( { model
+                            | jobsError = Just Disabled
+                            , jobs = Fetched Dict.empty
+                          }
+                        , effects
+                        )
 
                     else
                         ( { model | jobsError = Just Failed }, effects )
