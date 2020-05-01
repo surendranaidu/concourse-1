@@ -19,7 +19,7 @@ pipeline :
     { a
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
-        , isFavorited : Bool 
+        , isFavorited : Bool
     }
     -> Concourse.Pipeline
     -> Views.Pipeline

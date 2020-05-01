@@ -10,9 +10,9 @@ module SideBar.Styles exposing
     , iconGroup
     , opacityAttr
     , pipeline
+    , pipelineFavourite
     , pipelineIcon
     , pipelineLink
-    , pipelineFavourite 
     , sideBar
     , team
     , teamHeader
