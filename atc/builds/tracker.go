@@ -1,22 +1,21 @@
 package builds
 
 import (
+	"context"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/metric"
 )
 
 func NewTracker(
-	logger lager.Logger,
-
 	buildFactory db.BuildFactory,
 	engine engine.Engine,
 ) *Tracker {
 	return &Tracker{
-		logger:       logger,
 		buildFactory: buildFactory,
 		engine:       engine,
 		running:      &sync.Map{},
@@ -32,15 +31,15 @@ type Tracker struct {
 	running *sync.Map
 }
 
-func (bt *Tracker) Track() error {
-	tLog := bt.logger.Session("track")
+func (bt *Tracker) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx)
 
-	tLog.Debug("start")
-	defer tLog.Debug("done")
+	logger.Debug("start")
+	defer logger.Debug("done")
 
 	builds, err := bt.buildFactory.GetAllStartedBuilds()
 	if err != nil {
-		tLog.Error("failed-to-lookup-started-builds", err)
+		logger.Error("failed-to-lookup-started-builds", err)
 		return err
 	}
 
@@ -53,7 +52,7 @@ func (bt *Tracker) Track() error {
 				defer metric.BuildsRunning.Dec()
 
 				engineBuild := bt.engine.NewBuild(build)
-				engineBuild.Run(tLog.WithData(lager.Data{
+				engineBuild.Run(logger.Session("run", lager.Data{
 					"build":    build.ID(),
 					"pipeline": build.PipelineName(),
 					"job":      build.JobName(),
@@ -63,12 +62,4 @@ func (bt *Tracker) Track() error {
 	}
 
 	return nil
-}
-
-func (bt *Tracker) Release() {
-	rLog := bt.logger.Session("release")
-	rLog.Debug("start")
-	defer rLog.Debug("done")
-
-	bt.engine.ReleaseAll(rLog)
 }
