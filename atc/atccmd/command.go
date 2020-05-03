@@ -497,7 +497,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	cmd.varSourcePool = creds.NewVarSourcePool(5*time.Minute, clock.NewClock())
+	cmd.varSourcePool = creds.NewVarSourcePool(
+		logger.Session("var-source-pool"),
+		5*time.Minute,
+		1*time.Minute,
+		clock.NewClock(),
+	)
 
 	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
@@ -529,6 +534,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
 			closer.Close()
 		}
+
+		cmd.varSourcePool.Close()
 	}
 
 	return run(grouper.NewParallel(os.Interrupt, members), onReady, onExit), nil
@@ -1056,7 +1063,6 @@ func (cmd *RunCommand) constructGCMember(
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
-		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(cmd.varSourcePool.(gc.Collector)),
 	}
 
 	for collectorName, collector := range collectors {
@@ -1547,9 +1553,6 @@ func (cmd *RunCommand) configureComponentIntervals(componentFactory db.Component
 			}, {
 				Name:     atc.ComponentCollectorWorkers,
 				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorVarSources,
-				Interval: 60 * time.Second,
 			},
 		})
 }
