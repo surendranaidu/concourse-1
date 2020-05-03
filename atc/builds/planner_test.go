@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"testing"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/builds"
@@ -16,6 +17,12 @@ import (
 type PlannerSuite struct {
 	suite.Suite
 	*require.Assertions
+}
+
+func TestBuildPlanner(t *testing.T) {
+	suite.Run(t, &PlannerSuite{
+		Assertions: require.New(t),
+	})
 }
 
 type PlannerTest struct {
